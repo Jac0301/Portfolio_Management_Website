@@ -1,9 +1,5 @@
 # TCN-AE 模型問答集
 
-## 還有疑問的:
-1. Md中的論文 https://www.gm.fh-koeln.de/ciopwebpub/Thill20a.d/bioma2020-tcn.pdf連結進不去(原github中的paper連結也是) 是否有其他連結或pdf
-2. output_original_data.csv 從哪邊抓的 若有新資料要從哪抓 及該如何新增
-
 ## 關於 TCN-AE 模型的基本資訊
 
 ### Q1: TCN-AE 是在做什麼的？
@@ -81,37 +77,69 @@ TCN-AE（Temporal Convolutional Network - AutoEncoder）是一個時間序列異
 ### Q5: 如何使用新資料重新訓練？
 
 1. **準備新資料**：
-   - 確保新資料格式與 `output_original_data.csv` 相同
-   - 需要包含相同的 117 個特徵
-   - 將新資料命名為不同的名稱，例如 `new_output_original_data.csv`
+   - 確保新資料格式與 `output_original_data.csv` 相同，需要包含以下欄位：
+     - date：日期
+     - stock_id：股票代碼
+     - CLOSE_O：收盤價
+     - 其他技術指標（共 117 個特徵）
+   - 資料需要按照 stock_id 和 date 排序
 
-2. **修改訓練腳本**：
+2. **訓練流程（train TCN-AE model.ipynb）**：
+   a. 資料準備：
    ```python
-   # 在 train TCN-AE model.ipynb 中：
-   model_suffix = "_new"  # 或其他識別符號
+   # 讀取資料
+   original_data = pd.read_csv('your_new_data.csv')
+   original_data['date'] = pd.to_datetime(original_data['date'])
    
-   # 修改輸入資料名稱
-   csv_file_path = 'new_output_original_data.csv'
-   
-   # 修改輸出檔名
-   model_filename = f'tcn_{filters_conv1d}_model{model_suffix}.h5'
-   scaler_filename = f'tcnae_minmax_scaler{model_suffix}.pkl'
+   # 特徵標準化
+   feature_names = list(original_data.columns[3:])  # 從第4列開始是特徵
+   ss = MinMaxScaler()
+   df_feature = ss.fit_transform(original_data[feature_names])
    ```
 
-3. **修改預測腳本**：
+   b. 模型訓練：
    ```python
-   # 在 TCN-AE predict data.ipynb 中：
-   model_suffix = "_new"
+   # 初始化模型
+   tcn_ae_20 = TCNAE(ts_dimension=117,  # 特徵維度
+                     filters_conv1d=20,   # 壓縮後的維度
+                     latent_sample_rate=20)  # 時間壓縮比例
    
-   # 修改輸入檔名
-   csv_file_path = 'new_output_original_data.csv'
-   ss_loaded = joblib.load(f'tcnae_minmax_scaler{model_suffix}.pkl')
-   tcn_ae_20.model.load_weights(f"tcn_20_model{model_suffix}.h5")
-   
-   # 修改輸出檔名
-   output_filename = f'tcnae_predict_daily_trade_info{model_suffix}.csv'
-   coding_tcn_20_df.to_csv(output_filename, index=False)
+   # 訓練模型
+   history = tcn_ae_20.fit(train_X, train_Y, data_tcn_valid,
+                          batch_size=32, epochs=40)
    ```
+
+   c. 保存結果：
+   ```python
+   # 模型會自動保存為 tcn_20_model.h5
+   # 保存 scaler
+   joblib.dump(ss, 'tcnae_minmax_scaler.pkl')
+   ```
+
+3. **預測流程（TCN-AE predict data.ipynb）**：
+   ```python
+   # 讀取新資料
+   original_data = pd.read_csv('your_new_data.csv')
+   original_data['date'] = pd.to_datetime(original_data['date'])
+   
+   # 載入 scaler 和模型
+   ss_loaded = joblib.load('tcnae_minmax_scaler.pkl')
+   tcn_ae_20 = TCNAE(ts_dimension=117, verbose=2, filters_conv1d=20)
+   tcn_ae_20.model.load_weights("tcn_20_model.h5")
+   
+   # 進行預測並保存結果
+   tcnae_20_encoder = tcn_ae_20.tcn_encoder_train(data_tcn_train)
+   coding_tcn_20_df.to_csv('tcnae_predict_daily_trade_info.csv', index=False)
+   ```
+
+4. **注意事項**：
+   - 訓練資料需要包含足夠長的時間序列（至少 20 天）
+   - 特徵順序必須與原始資料完全相同
+   - 如果要訓練多個版本，建議：
+     1. 建立不同的工作目錄
+     2. 複製整個 TCN-AE 資料夾到新目錄
+     3. 在新目錄中進行訓練
+   - 模型檔案名稱是在 TCNAE 類中寫死的，如果要修改需要改 tcnae.py
 
 ### Q6: 程式間的依賴關係是什麼？
 
