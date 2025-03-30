@@ -1,5 +1,9 @@
 # TCN-AE 模型問答集
 
+## 還有疑問的:
+1. Md中的論文 https://www.gm.fh-koeln.de/ciopwebpub/Thill20a.d/bioma2020-tcn.pdf連結進不去(原github中的paper連結也是) 是否有其他連結或pdf
+2. output_original_data.csv 從哪邊抓的 若有新資料要從哪抓 及該如何新增
+
 ## 關於 TCN-AE 模型的基本資訊
 
 ### Q1: TCN-AE 是在做什麼的？
