@@ -30,7 +30,7 @@ TCN-AE（Temporal Convolutional Network - AutoEncoder）是一個時間序列異
 
 3. **train TCN-AE model.ipynb**：
    - 模型訓練腳本
-   - 輸入：`output_original_data.csv`
+   - 輸入：`output_original_data.csv`（或自定義的新資料檔案）
    - 輸出：
      - `tcn_20_model.h5`（訓練好的模型）
      - `tcnae_minmax_scaler.pkl`（數據標準化工具）
@@ -39,7 +39,7 @@ TCN-AE（Temporal Convolutional Network - AutoEncoder）是一個時間序列異
 4. **TCN-AE predict data.ipynb**：
    - 預測腳本
    - 輸入：
-     - `output_original_data.csv`（使用訓練資料）
+     - `output_original_data.csv`（或自定義的新資料檔案）
      - `tcn_20_model.h5`
      - `tcnae_minmax_scaler.pkl`
    - 輸出：`tcnae_predict_daily_trade_info.csv`
@@ -52,7 +52,7 @@ TCN-AE（Temporal Convolutional Network - AutoEncoder）是一個時間序列異
    - 數據標準化的 scaler
    - 用於預處理輸入數據
 
-7. **output_original_data.csv**：
+7. **output_original_data.csv** 或 **new_output_original_data.csv**：
    - 原始訓練數據
    - 包含 117 個特徵的時間序列數據
 
@@ -84,62 +84,78 @@ TCN-AE（Temporal Convolutional Network - AutoEncoder）是一個時間序列異
      - 其他技術指標（共 117 個特徵）
    - 資料需要按照 stock_id 和 date 排序
 
-2. **訓練流程（train TCN-AE model.ipynb）**：
-   a. 資料準備：
-   ```python
-   # 讀取資料
-   original_data = pd.read_csv('your_new_data.csv')
-   original_data['date'] = pd.to_datetime(original_data['date'])
-   
-   # 特徵標準化
-   feature_names = list(original_data.columns[3:])  # 從第4列開始是特徵
-   ss = MinMaxScaler()
-   df_feature = ss.fit_transform(original_data[feature_names])
-   ```
+2. **修改訓練程式碼（train TCN-AE model.ipynb）**：
+   - **需要修改的部分**：
+     - 第 38 行：修改檔案路徑以指向新資料
+       ```python
+       # 原始代碼
+       csv_file_path = 'output_original_data.csv'
+       # 修改為新檔案名稱，例如：
+       csv_file_path = 'new_output_original_data.csv'
+       ```
+     - 第 178-179 行：修改輸出檔案名稱，避免覆蓋原始輸出
+       ```python
+       # 原始代碼
+       coding_tcn_20_df.to_csv('tcn_daily_trade_info.csv', index=False)
+       # 修改為新檔案名稱，例如：
+       coding_tcn_20_df.to_csv('new_tcn_daily_trade_info.csv', index=False)
+       ```
+     - 模型檔案名稱在 TCNAE 類中是自動生成的，預設為 `tcn_20_model.h5`，如果要避免覆蓋，可以修改 tcnae.py 中的以下部分：
+       ```python
+       # tcnae.py 文件中的第 176-177 行
+       # 原始代碼
+       model_filename = 'tcn_{}_model.h5'.format(self.filters_conv1d)
+       # 修改為（例如添加時間戳或版本號）
+       model_filename = 'tcn_{}_model_v2.h5'.format(self.filters_conv1d)
+       ```
+     - 同樣地，scaler 檔案也可以修改名稱：
+       ```python
+       # train TCN-AE model.ipynb 中的第 152 行
+       # 原始代碼
+       joblib.dump(ss, 'tcnae_minmax_scaler.pkl')
+       # 修改為
+       joblib.dump(ss, 'tcnae_minmax_scaler_v2.pkl')
+       ```
 
-   b. 模型訓練：
-   ```python
-   # 初始化模型
-   tcn_ae_20 = TCNAE(ts_dimension=117,  # 特徵維度
-                     filters_conv1d=20,   # 壓縮後的維度
-                     latent_sample_rate=20)  # 時間壓縮比例
-   
-   # 訓練模型
-   history = tcn_ae_20.fit(train_X, train_Y, data_tcn_valid,
-                          batch_size=32, epochs=40)
-   ```
-
-   c. 保存結果：
-   ```python
-   # 模型會自動保存為 tcn_20_model.h5
-   # 保存 scaler
-   joblib.dump(ss, 'tcnae_minmax_scaler.pkl')
-   ```
-
-3. **預測流程（TCN-AE predict data.ipynb）**：
-   ```python
-   # 讀取新資料
-   original_data = pd.read_csv('your_new_data.csv')
-   original_data['date'] = pd.to_datetime(original_data['date'])
-   
-   # 載入 scaler 和模型
-   ss_loaded = joblib.load('tcnae_minmax_scaler.pkl')
-   tcn_ae_20 = TCNAE(ts_dimension=117, verbose=2, filters_conv1d=20)
-   tcn_ae_20.model.load_weights("tcn_20_model.h5")
-   
-   # 進行預測並保存結果
-   tcnae_20_encoder = tcn_ae_20.tcn_encoder_train(data_tcn_train)
-   coding_tcn_20_df.to_csv('tcnae_predict_daily_trade_info.csv', index=False)
-   ```
+3. **修改預測程式碼（TCN-AE predict data.ipynb）**：
+   - **需要修改的部分**：
+     - 第 8-9 行：修改輸入檔案路徑
+       ```python
+       # 原始代碼
+       csv_file_path = 'output_original_data.csv'
+       # 修改為新檔案路徑
+       csv_file_path = 'new_output_original_data.csv'
+       ```
+     - 第 27-28 行：如果訓練時修改了 scaler 名稱，這裡也要相應修改
+       ```python
+       # 原始代碼
+       ss_loaded = joblib.load('tcnae_minmax_scaler.pkl')
+       # 修改為新檔案名稱
+       ss_loaded = joblib.load('tcnae_minmax_scaler_v2.pkl')
+       ```
+     - 第 40-41 行：如果訓練時修改了模型名稱，這裡也要相應修改
+       ```python
+       # 原始代碼
+       tcn_ae_20.model.load_weights("tcn_20_model.h5")
+       # 修改為新檔案名稱
+       tcn_ae_20.model.load_weights("tcn_20_model_v2.h5")
+       ```
+     - 第 81-82 行：修改輸出檔案名稱
+       ```python
+       # 原始代碼
+       coding_tcn_20_df.to_csv('tcnae_predict_daily_trade_info.csv', index=False)
+       # 修改為新檔案名稱
+       coding_tcn_20_df.to_csv('new_tcnae_predict_daily_trade_info.csv', index=False)
+       ```
 
 4. **注意事項**：
-   - 訓練資料需要包含足夠長的時間序列（至少 20 天）
-   - 特徵順序必須與原始資料完全相同
+   - 訓練資料的列數（row 數）可以改變，程式會根據資料自動處理
+   - 但特徵的數量和順序（column 數）必須與原始資料完全相同（共 117 個特徵）
    - 如果要訓練多個版本，建議：
      1. 建立不同的工作目錄
      2. 複製整個 TCN-AE 資料夾到新目錄
-     3. 在新目錄中進行訓練
-   - 模型檔案名稱是在 TCNAE 類中寫死的，如果要修改需要改 tcnae.py
+     3. 在新目錄中修改程式碼和檔案名稱
+   - 如果數據結構（特徵數量）變化，需要修改 tcnae.py 中的 `ts_dimension` 參數
 
 ### Q6: 程式間的依賴關係是什麼？
 
@@ -150,12 +166,12 @@ TCN-AE（Temporal Convolutional Network - AutoEncoder）是一個時間序列異
 
 2. **檔案輸出與使用關係**：
    - `train TCN-AE model.ipynb` 產生：
-     - `tcn_20_model.h5`：被 `TCN-AE predict data.ipynb` 使用
-     - `tcnae_minmax_scaler.pkl`：被 `TCN-AE predict data.ipynb` 使用
-     - `tcn_daily_trade_info.csv`：被 Trading Agent 資料夾中的 `train trade agent.ipynb` 使用
+     - `tcn_20_model.h5`（或自定義名稱）：被 `TCN-AE predict data.ipynb` 使用
+     - `tcnae_minmax_scaler.pkl`（或自定義名稱）：被 `TCN-AE predict data.ipynb` 使用
+     - `tcn_daily_trade_info.csv`（或自定義名稱）：被 Trading Agent 資料夾中的 `train trade agent.ipynb` 使用
 
    - `TCN-AE predict data.ipynb` 產生：
-     - `tcnae_predict_daily_trade_info.csv`：可用於預測新數據
+     - `tcnae_predict_daily_trade_info.csv`（或自定義名稱）：可用於預測新數據
 
 3. **跨資料夾的依賴**：
    - Trading Agent 資料夾中的 `train trade agent.ipynb` 使用了 TCN-AE 的輸出：
@@ -163,8 +179,8 @@ TCN-AE（Temporal Convolutional Network - AutoEncoder）是一個時間序列異
      - 該檔案也被壓縮為 `tcn_daily_trade_info.7z` 以節省空間
 
 ### 注意事項：
-1. 確保新資料的格式完全符合原始資料格式
-2. 保持特徵的順序一致
+1. 確保新資料的格式（特徵數量和順序）完全符合原始資料格式
+2. 使用不同的檔案名稱來避免覆蓋原始訓練結果
 3. 在訓練新模型時，建議保留原始模型作為備份
-4. 使用有意義的後綴來區分不同版本的模型和輸出
+4. 使用有意義的後綴或版本號來區分不同版本的模型和輸出
 5. 注意跨資料夾的檔案依賴關係，確保檔案路徑正確 
