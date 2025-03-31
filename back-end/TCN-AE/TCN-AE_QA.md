@@ -1,5 +1,28 @@
 # TCN-AE 模型問答集
 
+## 問題:
+1. 沒有original paper
+2. 套件要用裝特定版本但沒提
+3. "train TCN-AE model.ipynb"中，需要加入程式碼來保存 scaler(不確定為甚麼這塊不見了)
+4. "TCN-AE predict data.ipynb"產生的"tcnae_predict_daily_trade_info.csv"被用在哪，看起來沒被用到，這樣是這程式不用跑嗎?
+5. "TCN-AE predict data.ipynb" 中的
+```python
+##把encoder的資料放回coding裡面
+coding_tcn_20_df[['coding1', 'coding2', 'coding3', 'coding4', 'coding5', 
+                        'coding6', 'coding7', 'coding8', 'coding9', 'coding10',
+                        'coding11', 'coding12', 'coding13', 'coding14', 'coding15',
+                        'coding16', 'coding17', 'coding18', 'coding19', 'coding20']] = tcnae_20_encoder_reshaped
+coding_tcn_20_df
+```
+和
+```python
+new_columns = {'stock_id': 'tic'}
+coding_tcn_20_df = coding_tcn_20_train_df.rename(columns=new_columns)
+coding_tcn_20_train_df.to_csv('new_tcnae_predict_daily_trade_info.csv', index=False)
+```
+區塊有問題，
+好像是要從"coding_tcn_20_df"改成"coding_tcn_20_train_df"我才能跑，但我不確定這樣是否是對的
+
 ## 關於 TCN-AE 模型的基本資訊
 
 ### Q1: TCN-AE 是在做什麼的？
@@ -75,6 +98,11 @@ TCN-AE（Temporal Convolutional Network - AutoEncoder）是一個時間序列異
    - `README.md`：說明文件
 
 ### Q5: 如何使用新資料重新訓練？
+
+```
+pip install keras==2.6.0
+pip install keras-tcn==3.3.0
+```
 
 1. **準備新資料**：
    - 確保新資料格式與 `output_original_data.csv` 相同，需要包含以下欄位：
