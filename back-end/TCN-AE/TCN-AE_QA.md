@@ -86,65 +86,79 @@ TCN-AE（Temporal Convolutional Network - AutoEncoder）是一個時間序列異
 
 2. **修改訓練程式碼（train TCN-AE model.ipynb）**：
    - **需要修改的部分**：
-     - 第 38 行：修改檔案路徑以指向新資料
+     - 修改檔案路徑以指向新資料：
        ```python
-       # 原始代碼
+       # 原始代碼（大約在檔案開頭附近）
        csv_file_path = 'output_original_data.csv'
        # 修改為新檔案名稱，例如：
        csv_file_path = 'new_output_original_data.csv'
        ```
-     - 第 178-179 行：修改輸出檔案名稱，避免覆蓋原始輸出
+     - 修改輸出檔案名稱，避免覆蓋原始輸出：
        ```python
-       # 原始代碼
-       coding_tcn_20_df.to_csv('tcn_daily_trade_info.csv', index=False)
+       # 原始代碼（在檔案末尾處）
+       new_columns = {'stock_id': 'tic'}
+       combined_df = combined_df.rename(columns=new_columns)
+       combined_df.to_csv('tcn_daily_trade_info.csv', index=False)
+       
        # 修改為新檔案名稱，例如：
-       coding_tcn_20_df.to_csv('new_tcn_daily_trade_info.csv', index=False)
+       new_columns = {'stock_id': 'tic'}
+       combined_df = combined_df.rename(columns=new_columns)
+       combined_df.to_csv('new_tcn_daily_trade_info.csv', index=False)
        ```
-     - 模型檔案名稱在 TCNAE 類中是自動生成的，預設為 `tcn_20_model.h5`，如果要避免覆蓋，可以修改 tcnae.py 中的以下部分：
+     - 保存 MinMaxScaler：
        ```python
-       # tcnae.py 文件中的第 176-177 行
+       # 在檔案中已有的代碼（在定義 ss = MinMaxScaler() 之後的某處）
+       # 加入以下代碼保存 scaler
+       import joblib
+       joblib.dump(ss, 'tcnae_minmax_scaler_v2.pkl')
+       ```
+     - 模型檔案名稱在 tcnae.py 中是自動生成的，預設為 `tcn_{filters_conv1d}_model.h5`，如果要避免覆蓋，可以修改 tcnae.py 中的以下部分：
+       ```python
+       # tcnae.py 文件中（在 fit 方法內）
        # 原始代碼
        model_filename = 'tcn_{}_model.h5'.format(self.filters_conv1d)
        # 修改為（例如添加時間戳或版本號）
        model_filename = 'tcn_{}_model_v2.h5'.format(self.filters_conv1d)
        ```
-     - 同樣地，scaler 檔案也可以修改名稱：
-       ```python
-       # train TCN-AE model.ipynb 中的第 152 行
-       # 原始代碼
-       joblib.dump(ss, 'tcnae_minmax_scaler.pkl')
-       # 修改為
-       joblib.dump(ss, 'tcnae_minmax_scaler_v2.pkl')
-       ```
 
 3. **修改預測程式碼（TCN-AE predict data.ipynb）**：
    - **需要修改的部分**：
-     - 第 8-9 行：修改輸入檔案路徑
+     - 修改輸入檔案路徑：
        ```python
-       # 原始代碼
+       # 原始代碼（大約在檔案開頭處）
        csv_file_path = 'output_original_data.csv'
+       original_data = pd.read_csv(csv_file_path)
+       
        # 修改為新檔案路徑
        csv_file_path = 'new_output_original_data.csv'
+       original_data = pd.read_csv(csv_file_path)
        ```
-     - 第 27-28 行：如果訓練時修改了 scaler 名稱，這裡也要相應修改
+     - 如果訓練時修改了 scaler 名稱，這裡也要相應修改：
        ```python
-       # 原始代碼
+       # 原始代碼（在獲取特徵名稱之後）
        ss_loaded = joblib.load('tcnae_minmax_scaler.pkl')
+       
        # 修改為新檔案名稱
        ss_loaded = joblib.load('tcnae_minmax_scaler_v2.pkl')
        ```
-     - 第 40-41 行：如果訓練時修改了模型名稱，這裡也要相應修改
+     - 如果訓練時修改了模型名稱，這裡也要相應修改：
        ```python
-       # 原始代碼
+       # 原始代碼（在初始化 TCNAE 模型後）
        tcn_ae_20.model.load_weights("tcn_20_model.h5")
+       
        # 修改為新檔案名稱
        tcn_ae_20.model.load_weights("tcn_20_model_v2.h5")
        ```
-     - 第 81-82 行：修改輸出檔案名稱
+     - 修改輸出檔案名稱：
        ```python
-       # 原始代碼
+       # 原始代碼（在檔案末尾處）
+       new_columns = {'stock_id': 'tic'}
+       coding_tcn_20_df = coding_tcn_20_df.rename(columns=new_columns)
        coding_tcn_20_df.to_csv('tcnae_predict_daily_trade_info.csv', index=False)
+       
        # 修改為新檔案名稱
+       new_columns = {'stock_id': 'tic'}
+       coding_tcn_20_df = coding_tcn_20_df.rename(columns=new_columns)
        coding_tcn_20_df.to_csv('new_tcnae_predict_daily_trade_info.csv', index=False)
        ```
 
