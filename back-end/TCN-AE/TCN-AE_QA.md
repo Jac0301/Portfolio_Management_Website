@@ -5,9 +5,6 @@
 ### 已討論過:
 tcnae找不到original paper
 
-### 已解決:
-套件要用裝特定版本但沒提
-
 ### 已解決，但或許需要跟學長確認:
 1. "train TCN-AE model.ipynb"中，需要加入程式碼來保存 scaler(不確定為甚麼這塊不見了)
 2. "TCN-AE predict data.ipynb"產生的"tcnae_predict_daily_trade_info.csv"被用在哪，看起來沒被用到，這樣是這程式不用跑嗎?
